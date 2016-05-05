@@ -36,8 +36,15 @@ const double SCALE = 0.5;
 
 //global variables
 Mat frame; //current frame
+Mat previousFrame;
 int keyboard; //input from keyboard
 char * videoId;
+vector<KeyPoint> keypoints;
+vector<KeyPoint> previousKeypoints;
+Mat descriptor;
+Mat previousDescriptor;
+int keypointsNum;
+
 
 //function declaration
 void help();
@@ -92,14 +99,20 @@ void processVideo(char* videoFilename) {
     cerr << "Unable to open video file: " << videoFilename << endl;
     exit(EXIT_FAILURE);
   }
+
+  int frameNum = 0;
+  keypointsNum = 0;
   //read input data. ESC or 'q' for quitting
   while( (char)keyboard != 'q' && (char)keyboard != 27 ){
     //read the current frame
     if(!capture.read(frame)) {
+      if (frameNum != 0) keypointsNum /= frameNum;
+      cout << "Avg KeypointsNum = " << keypointsNum << endl;
       cerr << "Unable to read next frame." << endl;
       cerr << "Exiting..." << endl;
       exit(EXIT_FAILURE);
     }
+    frameNum++;
 
     //get the frame number and write it on the current frame
     stringstream ss;
@@ -116,35 +129,35 @@ void processVideo(char* videoFilename) {
     //-- Step 1: Detect the keypoints using SURF Detector
     int minHessian = 400;
     Ptr<SURF> detector = SURF::create( minHessian );
-    vector<KeyPoint> keypoints;
-    Mat descriptor;
-    detector->detectAndCompute( frame, Mat(), keypoints, descriptor );
+    detector->detectAndCompute( frame, Mat(), keypoints, descriptor);
 
-    //convert keypoints to mat or save them to text file
-    std::vector<cv::Point2f> points;
-    std::vector<cv::KeyPoint>::iterator it;
-    for( it= keypoints.begin(); it!= keypoints.end();it++)
-    {
-      points.push_back(it->pt);
-    }
-    cv::Mat pointmatrix(points);
-    string outputFile = string(OUTPUT_FOLDER) + string(videoId) + "/" + frameNumberString + ".yml";
-    cout << "outputFileName = " << outputFile << endl;
-    cv::FileStorage fs(outputFile.c_str(), cv::FileStorage::WRITE);
-    fs << "pointmatrix" << pointmatrix;
-    fs.release();
+    keypointsNum+=keypoints.size();
+    cout << frameNumberString << ": KeypointsNum = " << keypoints.size() << endl;
+    // //convert keypoints to mat or save them to text file
+    // std::vector<cv::Point2f> points;
+    // std::vector<cv::KeyPoint>::iterator it;
+    // for( it= keypoints.begin(); it!= keypoints.end();it++)
+    // {
+    //   points.push_back(it->pt);
+    // }
+    // cv::Mat pointmatrix(points);
+    // string outputFile = string(OUTPUT_FOLDER) + string(videoId) + "/" + frameNumberString + ".yml";
+    // cout << "outputFileName = " << outputFile << endl;
+    // cv::FileStorage fs(outputFile.c_str(), cv::FileStorage::WRITE);
+    // fs << "pointmatrix" << pointmatrix;
+    // fs.release();
 
     // cout << descriptor << endl;
 
-    //-- Draw keypoints
-    Mat img_keypoints;
-    drawKeypoints( frame, keypoints, img_keypoints, Scalar::all(-1), DrawMatchesFlags::DEFAULT );
-    //-- Show detected (drawn) keypoints
-    imshow("Keypoints ", img_keypoints);
+    // //-- Draw keypoints
+    // Mat img_keypoints;
+    // drawKeypoints( frame, keypoints, img_keypoints, Scalar::all(-1), DrawMatchesFlags::DEFAULT );
+    // //-- Show detected (drawn) keypoints
+    // imshow("Keypoints ", img_keypoints);
 
 
     //get the input from the keyboard
-    keyboard = waitKey( 0 );
+    keyboard = waitKey( 30 );
   }
   //delete capture object
   capture.release();
